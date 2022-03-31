@@ -1,11 +1,19 @@
 from aiogram import types
 
-# Mark up for "/start" command
+# Markup for "/start" command
 start_markup = types.inline_keyboard.InlineKeyboardMarkup()
-start_markup.row(types.inline_keyboard.InlineKeyboardButton(text="🎮️ Game Recommendation",
-                                                            callback_data="game_recommendation"))
-start_markup.row(types.inline_keyboard.InlineKeyboardButton(text="📰️ News",
-                                                            callback_data="game_news"))
-start_markup.row(types.inline_keyboard.InlineKeyboardButton(text="💬️ Chit-chat",
-                                                            callback_data="start_chit_chat"))
+start_markup.row(types.inline_keyboard.InlineKeyboardButton(text="🎮️ Game Query",
+                                                            callback_data="game_query_0"))
+start_markup.row(types.inline_keyboard.InlineKeyboardButton(text="🧐 Game Recommendation by a Given Game",
+                                                            callback_data="game_recommendation_0"))
+start_markup.row(types.inline_keyboard.InlineKeyboardButton(text="🗄 Game Recommendation by Genre",
+                                                            callback_data="game_recommendation_genre_0"))
+start_markup.row(types.inline_keyboard.InlineKeyboardButton(text="📰️ Latest Games & News",
+                                                            callback_data="game_news_0"))
+start_markup.row(types.inline_keyboard.InlineKeyboardButton(text="❓️ Help",
+                                                            callback_data="help"))
 
+# Markup for cancel button
+cancel_markup = types.inline_keyboard.InlineKeyboardMarkup()
+cancel_markup.row(types.inline_keyboard.InlineKeyboardButton(text="Cancel",
+                                                             callback_data="main_menu"))
