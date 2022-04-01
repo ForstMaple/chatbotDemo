@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-logger = logging.getLogger("bot." + __name__)
+logging.basicConfig(format='%(asctime)s | %(name)s | %(levelname)s | %(message)s', level=logging.INFO)
 
 def load_game_data():
     """

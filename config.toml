@@ -1,5 +1,5 @@
 [bot]
-token = ""
+token = "5223546955:AAEphwM3PcvVYvDEjob2HyZvIjT2BUTDJoc"
 
 [redis]
 host = "localhost"

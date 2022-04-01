@@ -2,7 +2,7 @@ import logging
 import redis
 import toml
 
-logger = logging.getLogger("bot." + __name__)
+logging.basicConfig(format='%(asctime)s | %(name)s | %(levelname)s | %(message)s', level=logging.INFO)
 config = toml.load('config.toml')
 
 r = redis.Redis(host=config["redis"]["host"], port=config["redis"]["port"], db=0)

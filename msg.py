@@ -1,4 +1,4 @@
-start = "Hello, I can give you game recommendations or news! Please click on the button or type something to get started. You can click help or type /help to get more information."
+start_msg = "Hello, I can give you game recommendations or news! Please click on the button or type something to get started. You can click help or type /help to get more information."
 
 help_msg = "help message placeholder"
 

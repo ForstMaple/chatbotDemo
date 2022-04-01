@@ -1,4 +1,5 @@
 import logging
+import pickle
 import toml
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -10,16 +11,7 @@ import sticker
 import markup
 import msg
 
-logger = logging.getLogger('bot')
-logger.setLevel(logging.INFO)
-# create console handler with a higher log level
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-# create formatter and add it to the handlers
-formatter = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s | %(message)s')
-ch.setFormatter(formatter)
-# add the handlers to the logger
-logger.addHandler(ch)
+logging.basicConfig(format='%(asctime)s | %(name)s | %(levelname)s | %(message)s', level=logging.INFO)
 
 config = toml.load('config.toml')
 
@@ -34,64 +26,82 @@ class QueryFlow(StatesGroup):
     game_details = State()
 
 
-class RecommendationFlow(StatesGroup):
-    pending_game_input = State()
-    pending_game_confirmation = State()
 
-
-@dp.message_handler(state='*', commands=['start'])
-@dp.callback_query_handler(lambda cb: cb.data == "main_menu")
-async def start_msg(message: types.Message):
+@dp.message_handler(commands=['start'], state='*')
+async def start_command(message: types.Message, state: FSMContext):
+    await message.reply(msg.start_msg, reply_markup=markup.start_markup)
+    await state.finish()
     logging.info(f"Chat ID: {message.chat.id} | Main Menu")
-    await message.answer_sticker(sticker.hi)
-    await message.reply(msg.start, reply_markup=markup.start_markup)
 
 
-@dp.message_handler(state='*', commands=['help'])
-@dp.message_handler(lambda cb: cb.data == "help")
-async def help_msg(message: types.Message):
-    logger.info(f"Chat ID: {message.chat.id} | Help")
+@dp.callback_query_handler(lambda cb: cb.data == "main_menu", state='*')
+async def main_menu(query: types.CallbackQuery, state: FSMContext):
+    await query.message.edit_reply_markup(reply_markup=None)
+    await bot.send_message(query.message.chat.id, msg.start_msg, reply_markup=markup.start_markup)
+    await state.finish()
+    logging.info(f"Chat ID: {query.message.chat.id} | Back to main menu")
+
+
+@dp.message_handler(commands=['help'], state='*')
+async def help_command(message: types.Message, state: FSMContext):
     await message.reply(msg.help_msg, reply_markup=markup.start_markup)
+    await state.finish()
+    logging.info(f"Chat ID: {message.chat.id} | /help Command")
 
 
-# Game Query - Step 1 - Ask Input
+@dp.callback_query_handler(lambda cb: cb.data == "help", state='*')
+async def start_callback(query: types.CallbackQuery, state: FSMContext):
+    await query.message.edit_reply_markup(reply_markup=None)
+    await bot.send_message(query.message.chat.id, msg.help_msg, reply_markup=markup.start_markup)
+    await state.finish()
+    logging.info(f"Chat ID: {query.message.chat.id} | Help Callback")
+
+
+# Game Query - Step 1 - Ask for Input
 @dp.callback_query_handler(lambda cb: cb.data == "game_query_0")
-async def ask_game_input(callback_query: types.CallbackQuery):
-    logger.info(f"Chat ID: {callback_query.message.chat.id} | Game query - Started")
-    
-    await bot.send_sticker(callback_query.message.chat.id, sticker.question)
-    await bot.send_message(callback_query.message.chat.id, msg.ask_game_input_msg, reply_markup=markup.cancel_markup, parse_mode="Markdown")
+@dp.callback_query_handler(lambda cb: cb.data == "game_query_0", state='*')
+async def ask_game_input(query: types.CallbackQuery):
+    logging.info(f"Chat ID: {query.message.chat.id} | Game query - Started")
+    await query.message.edit_reply_markup(reply_markup=None)
+    await bot.send_message(query.message.chat.id,
+                           msg.ask_game_input_msg,
+                           reply_markup=markup.cancel_markup,
+                           parse_mode="Markdown")
     
     await QueryFlow.pending_game_input.set()
     
-    logging.info(f"Chat ID: {callback_query.message.chat.id} | Game query - Pending game input")
+    logging.info(f"Chat ID: {query.message.chat.id} | Game query - Pending game input")
 
 
+# Game Query - Step 2 - Give & Confirm Options
 @dp.message_handler(state=QueryFlow.pending_game_input)
 async def process_game_input(message: types.Message, state: FSMContext):
-    logger.info(f"Chat ID: {message.chat.id} | Game query - Processing user input")
+    logging.info(f"Chat ID: {message.chat.id} | Game query - Processing user input")
+    logging.info(f"Chat ID: {message.chat.id} | User input: {message.text}")
 
-    logger.info(f"Chat ID: {message.chat.id} | message: {message.text}")
-    chatid = message.chat.id
     game_choices = create_game_choices(message.text)
     game_markup = create_game_markup(game_choices)
+
     await message.reply(msg.confirm_game_input_msg, reply_markup=game_markup)
-    
     await QueryFlow.next()
+    set_user_state(message.chat.id, "game_choices", pickle.dumps(game_choices))
+    set_user_state(message.chat.id, "game_markup", pickle.dumps(game_markup))
     
-    logger.info(f"Chat ID: {message.chat.id} | Game query - Pending confirmation")
+    logging.info(f"Chat ID: {message.chat.id} | Game query - Pending confirmation")
 
 
-@dp.callback_query_handler(lambda cb: cb.data == "game_recommendation_0")
-async def ask_game_input(callback_query: types.CallbackQuery):
-    logger.info(f"Chat ID: {callback_query.message.chat.id} | Recommendation by Game - Started")
-    
-    await bot.send_sticker(callback_query.message.chat.id, sticker.question)
-    await bot.send_message(callback_query.message.chat.id, "Please enter a game name!")
-    
-    await RecommendationFlow.pending_game_input.set()
-    
-    logger.info(f"Chat ID: {callback_query.message.chat.id} | Recommendation by Game - Pending user input")
+# Game Query - Step 3 - Display Game Details
+@dp.callback_query_handler(lambda cb: cb.data.startswith("Option_"), state='*')
+async def display_game(query: types.CallbackQuery, state: FSMContext):
+    game_choices = pickle.loads(get_user_state(query.message.chat.id, "game_choices"))
+    game_markup = pickle.loads(get_user_state(query.message.chat.id, "game_markup"))
+    game = game_choices[int(query.data.split("_")[1])]
+    if not game._price:
+        game.get_price()
+    await bot.send_message(query.message.chat.id, game.format_introduction(),
+                           reply_markup=game_markup,
+                           parse_mode="Markdown")
+    set_user_state(query.message.chat.id, "game_choices", pickle.dumps(game_choices))
 
 
 async def on_shutdown(dp):
@@ -99,13 +109,10 @@ async def on_shutdown(dp):
     await dp.storage.close()
     await dp.storage.wait_closed()
     
-    logger.info("Storage closed.")
-    logger.info("Bot has been shutdown.")
+    logging.info("Storage closed.")
+    logging.info("Bot has been shutdown.")
 
 
 if __name__ == '__main__':
-    logger = logging.getLogger('bot')
-    logger.setLevel(logging.INFO)
-    ch.setLevel(logging.INFO)
     executor.start_polling(dp, skip_updates=True, on_shutdown=on_shutdown)
     
