@@ -12,4 +12,4 @@ if __name__ == '__main__':
 
     data = games["name"].apply(lambda x: nlp(str(x).lower()))
     vectors = data.apply(lambda x: x.vector)
-    np.save("embeddings", np.array(vectors.to_list()))
+    np.save("data/embeddings", np.array(vectors.to_list()))

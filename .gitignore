@@ -1,5 +1,5 @@
 /logs/
 /.idea/
 /__pycache__/
-/embeddings/
 /.vscode/
+config.toml

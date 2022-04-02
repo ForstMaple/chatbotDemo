@@ -1,0 +1,8 @@
+toml~=0.10.2
+aiogram~=2.19
+numpy~=1.21.2
+requests~=2.27.1
+pandas~=1.4.1
+redis~=4.2.0
+faiss~=1.7.1
+spacy_sentence_bert~=0.1.2
