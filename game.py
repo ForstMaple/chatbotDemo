@@ -49,7 +49,18 @@ class Game(object):
                     self._price += f" ({game_details['price_overview']['discount_percent']}% off)"
         else:
             logging.error(f"Price of {self._name} not found")
-            return
+            self._price = "N/A"
+
+    def get_summary(self):
+        global summaries
+
+        try:
+            summary = summaries.at[self._appid, "GeneratedText"]
+            logging.info(f"Summary retrieved for {self._name} ({self._appid})")
+            return summary
+        except Exception as e:
+            logging.error(f"Error when retrieving summary for {self._name} ({self._appid}): {e}")
+            return None
 
     def format_introduction(self):
         intro = f"*Game Name*: {self._name}\n" \
@@ -58,7 +69,8 @@ class Game(object):
                 f"*Supported Platform(s):* {' '.join([s.capitalize() for s in self._platforms.split(';')])}\n" \
                 f"*Positive Ratings:* {self._positive_rate:.2%} ({self._num_ratings} reviews)\n\n" \
                 f"*Current Price*: {self._price}\n\n" \
-                f"[{self._name} on Steam]({self._url})"
+                f"[{self._name} on Steam]({self._url})\n\n" \
+                f"{self.get_summary()}"
         return intro
 
 

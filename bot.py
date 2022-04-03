@@ -142,6 +142,8 @@ async def display_recommendations(query: types.CallbackQuery, state: FSMContext)
         recommendation_markup = pickle.loads(get_user_state(query.message.chat.id, "recommendation_markup"))
         option = appids.index(appid)
 
+        logging.info(f"Chat ID: {query.message.chat.id} | Getting recommendations for appid {appid}")
+
         game_recommendations = pickle.loads(get_user_state(query.message.chat.id, "game_recommendations"))
         game = game_recommendations[option]
         game.get_price()
@@ -154,13 +156,13 @@ async def display_recommendations(query: types.CallbackQuery, state: FSMContext)
 
 
 def del_all_user_states(chat_id):
-    logging.info(f"Chat ID: {chat_id} | Deleting all user states")
     try:
         del_user_state(chat_id, "game_choices")
         del_user_state(chat_id, "game_markup")
         del_user_state(chat_id, "appids")
         del_user_state(chat_id, "game_recommendations")
         del_user_state(chat_id, "recommendation_markup")
+        logging.info(f"Chat ID: {chat_id} | All user states deleted")
     except Exception as e:
         logging.error(f"Chat ID: {chat_id} | Error when deleting user states: {e}")
 

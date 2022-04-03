@@ -38,7 +38,7 @@ def load_summary_data():
     Loads the game description summaries from the csv file
     """
     try:
-        df = pd.read_csv("data/game_summaries.csv")
+        df = pd.read_csv("data/game_summaries.csv").set_index("appid")
         logging.info("Summary data loaded successfully!")
 
         return df
