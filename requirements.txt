@@ -4,5 +4,5 @@ numpy~=1.21.2
 requests~=2.27.1
 pandas~=1.4.1
 redis~=4.2.0
-faiss~=1.7.1
+faiss-cpu~=1.7.2
 spacy_sentence_bert~=0.1.2
