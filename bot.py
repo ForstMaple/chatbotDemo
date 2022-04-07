@@ -6,7 +6,8 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from cache_manager import set_user_state, get_user_state, del_user_state
-from game import create_game_choices, create_game_markup, create_recommendations, create_recommendation_markup
+from game import create_game_choices, create_game_markup, create_recommendations, create_recommendation_markup, \
+    format_user_filters
 import sticker
 import markup
 import msg
@@ -155,6 +156,56 @@ async def display_recommendations(query: types.CallbackQuery, state: FSMContext)
                                     parse_mode="Markdown")
 
 
+# Recommendation by Filtering - Step 1 - Greeting & Entry
+@dp.callback_query_handler(lambda cb: cb.data == "game_filtering_0", state='*')
+async def display_filters(query: types.CallbackQuery, state: FSMContext):
+    logging.info(f"Chat ID: {query.message.chat.id} | Displaying filters")
+
+    if get_user_state(query.message.chat.id, "user_filters"):
+        user_filters = pickle.loads(get_user_state(query.message.chat.id, "user_filters"))
+    else:
+        user_filters = {}
+        set_user_state(query.message.chat.id, "user_filters", pickle.dumps(user_filters))
+
+    await bot.edit_message_text(text=msg.display_filter_msg.format(format_user_filters(user_filters)),
+                                chat_id=query.message.chat.id,
+                                message_id=query.message.message_id,
+                                reply_markup=markup.filters_markup,
+                                parse_mode="Markdown")
+
+
+# Recommendation by Filtering - Step 2 - Set Filters
+@dp.callback_query_handler(lambda cb: cb.data.startswith("filter_"), state='*')
+async def handle_filters(query: types.CallbackQuery, state: FSMContext):
+    logging.info(f"Chat ID: {query.message.chat.id} | Setting filters")
+
+    filter_type = query.data.split('_')[1]
+    filter_value = query.data.split('_')[2]
+
+    user_filters = pickle.loads(get_user_state(query.message.chat.id, "user_filters"))
+
+    if filter_value == "100":
+        await bot.edit_message_text(text=msg.filter_message.format(filter_type, format_user_filters(user_filters)),
+                                    chat_id=query.message.chat.id,
+                                    message_id=query.message.message_id,
+                                    reply_markup=eval(f"markup.{filter_type}_markup"),
+                                    parse_mode="Markdown")
+    else:
+        user_filters[filter_type] = filter_value
+        await bot.edit_message_text(text=msg.filter_message.format(filter_type, format_user_filters(user_filters)),
+                                    chat_id=query.message.chat.id,
+                                    message_id=query.message.message_id,
+                                    reply_markup=eval(f"markup.{filter_type}_markup"),
+                                    parse_mode="Markdown")
+        set_user_state(query.message.chat.id, "user_filters", pickle.dumps(user_filters))
+
+
+# Recommendation by Filtering - Step 3 - Display Recommendations
+@dp.callback_query_handler(lambda cb: cb.data == "done", state='*')
+def display_filtering_results(query: types.CallbackQuery, state: FSMContext):
+    pass
+
+
 def del_all_user_states(chat_id):
     try:
         del_user_state(chat_id, "game_choices")
@@ -162,6 +213,7 @@ def del_all_user_states(chat_id):
         del_user_state(chat_id, "appids")
         del_user_state(chat_id, "game_recommendations")
         del_user_state(chat_id, "recommendation_markup")
+        del_user_state(chat_id, "user_filters")
         logging.info(f"Chat ID: {chat_id} | All user states deleted")
     except Exception as e:
         logging.error(f"Chat ID: {chat_id} | Error when deleting user states: {e}")
