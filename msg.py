@@ -14,4 +14,5 @@ display_filter_msg = "Hi! I would like to get more information about your prefer
                      "You can click *Done* to get the results after you set all filters. \n\n" \
                      "{}"
 
-filter_message = "What {} do u prefer?\n\n{}"
+filter_msg = "What {} do u prefer?\n\n{}"
+

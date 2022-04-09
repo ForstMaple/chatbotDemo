@@ -5,9 +5,10 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.types.inline_keyboard import InlineKeyboardButton
 from cache_manager import set_user_state, get_user_state, del_user_state
 from game import create_game_choices, create_game_markup, create_recommendations, create_recommendation_markup, \
-    format_user_filters
+    format_user_filters, parse_filter
 import sticker
 import markup
 import msg
@@ -82,6 +83,8 @@ async def process_game_input(message: types.Message, state: FSMContext):
 
     game_choices = create_game_choices(message.text)
     game_markup = create_game_markup(game_choices)
+    game_markup.row(InlineKeyboardButton(text="🔙 Back", callback_data="game_query_0"))
+    game_markup.insert(InlineKeyboardButton(text="🏠️ Main Menu", callback_data="main_menu"))
 
     await message.reply(msg.confirm_game_input_msg, reply_markup=game_markup)
     await QueryFlow.next()
@@ -92,7 +95,7 @@ async def process_game_input(message: types.Message, state: FSMContext):
 
 
 # Game Query - Step 3 - Display Game Details
-@dp.callback_query_handler(lambda cb: cb.data.startswith("Option_"), state='*')
+@dp.callback_query_handler(lambda cb: cb.data.startswith("option_"), state='*')
 @dp.callback_query_handler(lambda cb: cb.data == "back_to_game_details", state='*')
 async def display_game(query: types.CallbackQuery, state: FSMContext):
     if query.data == "back_to_game_details":
@@ -102,8 +105,8 @@ async def display_game(query: types.CallbackQuery, state: FSMContext):
         game_choices = pickle.loads(get_user_state(query.message.chat.id, "game_choices"))
         game_markup = pickle.loads(get_user_state(query.message.chat.id, "game_markup"))
         game = game_choices[int(query.data.split("_")[1])]
-        game_markup.row(types.inline_keyboard.InlineKeyboardButton(text="🤩 Get Recommendations",
-                                                                   callback_data=f"Get_Recommendation_{game._appid}"))
+        game_markup.row(InlineKeyboardButton(text="🤩 Get Recommendations",
+                                             callback_data=f"get_recommendation_{game._appid}"))
         game.get_price()
 
         await bot.edit_message_text(text=game.format_introduction(),
@@ -114,8 +117,8 @@ async def display_game(query: types.CallbackQuery, state: FSMContext):
 
 
 # Game Query - Step 4 - Display Recommendations
-@dp.callback_query_handler(lambda cb: cb.data.startswith("Get_Recommendation_"), state='*')
-@dp.callback_query_handler(lambda cb: cb.data.startswith("Recommendation_"), state='*')
+@dp.callback_query_handler(lambda cb: cb.data.startswith("get_recommendation_"), state='*')
+@dp.callback_query_handler(lambda cb: cb.data.startswith("recommendation_"), state='*')
 async def display_recommendations(query: types.CallbackQuery, state: FSMContext):
     if query.data.startswith("Get_Recommendation_"):
         appid = query.data.split('_')[2]
@@ -158,14 +161,15 @@ async def display_recommendations(query: types.CallbackQuery, state: FSMContext)
 
 # Recommendation by Filtering - Step 1 - Greeting & Entry
 @dp.callback_query_handler(lambda cb: cb.data == "game_filtering_0", state='*')
+@dp.callback_query_handler(lambda cb: cb.data == "back_to_game_filtering", state='*')
 async def display_filters(query: types.CallbackQuery, state: FSMContext):
-    logging.info(f"Chat ID: {query.message.chat.id} | Displaying filters")
-
     if get_user_state(query.message.chat.id, "user_filters"):
         user_filters = pickle.loads(get_user_state(query.message.chat.id, "user_filters"))
     else:
         user_filters = {}
         set_user_state(query.message.chat.id, "user_filters", pickle.dumps(user_filters))
+
+    logging.info(f"Chat ID: {query.message.chat.id} | Displaying filters | User filters: {user_filters}")
 
     await bot.edit_message_text(text=msg.display_filter_msg.format(format_user_filters(user_filters)),
                                 chat_id=query.message.chat.id,
@@ -177,33 +181,85 @@ async def display_filters(query: types.CallbackQuery, state: FSMContext):
 # Recommendation by Filtering - Step 2 - Set Filters
 @dp.callback_query_handler(lambda cb: cb.data.startswith("filter_"), state='*')
 async def handle_filters(query: types.CallbackQuery, state: FSMContext):
-    logging.info(f"Chat ID: {query.message.chat.id} | Setting filters")
-
     filter_type = query.data.split('_')[1]
     filter_value = query.data.split('_')[2]
+
+    logging.info(f"Chat ID: {query.message.chat.id} | Setting filter {filter_type} to {filter_value}")
 
     user_filters = pickle.loads(get_user_state(query.message.chat.id, "user_filters"))
 
     if filter_value == "100":
-        await bot.edit_message_text(text=msg.filter_message.format(filter_type, format_user_filters(user_filters)),
+        await bot.edit_message_text(text=msg.filter_msg.format(filter_type, format_user_filters(user_filters)),
                                     chat_id=query.message.chat.id,
                                     message_id=query.message.message_id,
                                     reply_markup=eval(f"markup.{filter_type}_markup"),
                                     parse_mode="Markdown")
     else:
         user_filters[filter_type] = filter_value
-        await bot.edit_message_text(text=msg.filter_message.format(filter_type, format_user_filters(user_filters)),
+        await bot.edit_message_text(text=msg.filter_msg.format(filter_type, format_user_filters(user_filters)),
                                     chat_id=query.message.chat.id,
                                     message_id=query.message.message_id,
                                     reply_markup=eval(f"markup.{filter_type}_markup"),
                                     parse_mode="Markdown")
+        logging.info(f"Chat ID: {query.message.chat.id} | Setting filters | User filters: {user_filters}")
         set_user_state(query.message.chat.id, "user_filters", pickle.dumps(user_filters))
 
 
 # Recommendation by Filtering - Step 3 - Display Recommendations
 @dp.callback_query_handler(lambda cb: cb.data == "done", state='*')
-def display_filtering_results(query: types.CallbackQuery, state: FSMContext):
-    pass
+async def display_filtering_results(query: types.CallbackQuery, state: FSMContext):
+    user_filters = pickle.loads(get_user_state(query.message.chat.id, "user_filters"))
+    logging.info(f"Chat ID: {query.message.chat.id} | Displaying Recommendations | User filters: {user_filters}")
+    if not user_filters:
+        await query.answer("Please set at least one filter.")
+        return
+
+    games_rating, games_rate, markup_rating, markup_rate = parse_filter(user_filters)
+
+    if not games_rating or not games_rate:
+        await query.answer("No games match your filters.")
+        return
+
+    games_rating[0].get_price()
+
+    await bot.edit_message_text(text=games_rating[0].format_introduction(),
+                                chat_id=query.message.chat.id,
+                                message_id=query.message.message_id,
+                                reply_markup=markup_rating,
+                                parse_mode="Markdown")
+
+    set_user_state(query.message.chat.id, "games_rating", pickle.dumps(games_rating))
+    set_user_state(query.message.chat.id, "games_rate", pickle.dumps(games_rate))
+    set_user_state(query.message.chat.id, "markup_rating", pickle.dumps(markup_rating))
+    set_user_state(query.message.chat.id, "markup_rate", pickle.dumps(markup_rate))
+
+
+@dp.callback_query_handler(lambda cb: cb.data.startswith("sort_by_"), state='*')
+@dp.callback_query_handler(lambda cb: cb.data.startswith("rating_option_"), state='*')
+@dp.callback_query_handler(lambda cb: cb.data.startswith("rate_option_"), state='*')
+async def update_filtering_results(query: types.CallbackQuery, state: FSMContext):
+    if query.data.startswith("sort_by_"):
+        sort_by = query.data.split('_')[2]
+        option = 0
+    else:
+        sort_by = query.data.split("_")[0]
+        option = int(query.data.split("_")[2])
+
+    if sort_by == "rating":
+        game = pickle.loads(get_user_state(query.message.chat.id, "games_rating"))[option]
+        reply_markup = pickle.loads(get_user_state(query.message.chat.id, "markup_rating"))
+    else:
+        game = pickle.loads(get_user_state(query.message.chat.id, "games_rate"))[option]
+        reply_markup = pickle.loads(get_user_state(query.message.chat.id, "markup_rate"))
+
+    if not game._price:
+        game.get_price()
+
+    await bot.edit_message_text(text=game.format_introduction(),
+                                chat_id=query.message.chat.id,
+                                message_id=query.message.message_id,
+                                reply_markup=reply_markup,
+                                parse_mode="Markdown")
 
 
 def del_all_user_states(chat_id):
@@ -214,6 +270,10 @@ def del_all_user_states(chat_id):
         del_user_state(chat_id, "game_recommendations")
         del_user_state(chat_id, "recommendation_markup")
         del_user_state(chat_id, "user_filters")
+        del_user_state(chat_id, "games_rating")
+        del_user_state(chat_id, "games_rate")
+        del_user_state(chat_id, "markup_rating")
+        del_user_state(chat_id, "markup_rate")
         logging.info(f"Chat ID: {chat_id} | All user states deleted")
     except Exception as e:
         logging.error(f"Chat ID: {chat_id} | Error when deleting user states: {e}")

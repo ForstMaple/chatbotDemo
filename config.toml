@@ -1,5 +1,5 @@
 [bot]
-token = "5223546955:AAFZdItyWS0CPZjTfZGBf3nZtoXHw6Hl8Us"
+token = ""
 
 [redis]
 host = "172.17.0.2"
