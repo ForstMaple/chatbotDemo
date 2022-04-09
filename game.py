@@ -214,7 +214,7 @@ def parse_filter(user_filters):
         parsed_filters = parsed_filters & games["special"].str.contains(f"'{special}'", na=False)
 
     if parsed_filters.sum() == 0:
-        return None, None
+        return None, None, None, None
     else:
         rows_rating = list(games[parsed_filters].sort_values(by="positive_rating", ascending=False).head(5).index)
         rows_rate = list(games[parsed_filters].sort_values(by="positive_rate", ascending=False).head(5).index)
