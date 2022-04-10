@@ -6,3 +6,5 @@ pandas~=1.4.1
 redis~=4.2.0
 faiss-cpu~=1.7.2
 spacy_sentence_bert~=0.1.2
+torch~=1.11.0
+nltk~=3.7

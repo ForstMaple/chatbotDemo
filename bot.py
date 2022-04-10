@@ -9,7 +9,7 @@ from aiogram.types.inline_keyboard import InlineKeyboardButton
 from cache_manager import set_user_state, get_user_state, del_user_state
 from game import create_game_choices, create_game_markup, create_recommendations, create_recommendation_markup, \
     format_user_filters, parse_filter
-import sticker
+from match_intent import match_intent
 import markup
 import msg
 
@@ -234,6 +234,7 @@ async def display_filtering_results(query: types.CallbackQuery, state: FSMContex
     set_user_state(query.message.chat.id, "markup_rate", pickle.dumps(markup_rate))
 
 
+# Recommendation by Filtering - Step 4, - Update Recommendations
 @dp.callback_query_handler(lambda cb: cb.data.startswith("sort_by_"), state='*')
 @dp.callback_query_handler(lambda cb: cb.data.startswith("rating_option_"), state='*')
 @dp.callback_query_handler(lambda cb: cb.data.startswith("rate_option_"), state='*')
@@ -260,6 +261,60 @@ async def update_filtering_results(query: types.CallbackQuery, state: FSMContext
                                 message_id=query.message.message_id,
                                 reply_markup=reply_markup,
                                 parse_mode="Markdown")
+
+
+# New Intent Teaching
+@dp.message_handler(commands=["teach"], state="*")
+async def teach_new_intent(message: types.Message):
+    try:
+        if "-t" in message.text:
+            logging.info(f"message: {message.text}")
+            chunks = message.text.lstrip("/teach").split(" -t ")
+            intent, text = chunks[0].strip(), chunks[1].strip()
+
+            with open("intent_classifier/more_topic.txt", "a") as f:
+                f.write(f"{intent}:{text}\n")
+
+            await message.reply("Thank you for teaching me! I will be more intelligent in the future.")
+
+            logging.info(f"Chat ID: {message.chat.id} | New Intent & Text Written |Intent: {intent} | Text: {text}")
+
+        else:
+            await message.reply("Sorry, I didn't understand your input. "
+                                "Please use the following format: /teach <text> -t <intent>")
+    except Exception as e:
+        logging.error(f"Chat ID: {message.chat.id} | Teaching Intent |Error: {e}")
+        await message.reply("Sorry, I didn't understand your input. "
+                            "Please use the following format: /teach <text> -t <intent>")
+
+
+# Enable intent matching
+@dp.message_handler(lambda message: message.text)
+async def intent_match(message: types.Message):
+    intent, response = match_intent(message.text)
+
+    logging.info(f"Chat ID: {message.chat.id} | Matched Intent: {intent}")
+
+    if intent in ["greeting", "goodbay", "thanks", "apology"]:
+        await message.reply(response)
+
+    elif intent == "recommendation_query":
+
+        logging.info(f"Chat ID: {message.chat.id} | Game query - Started by Intent Matching")
+        await message.reply(msg.ask_game_input_msg,
+                            reply_markup=markup.cancel_markup,
+                            parse_mode="Markdown")
+        await QueryFlow.pending_game_input.set()
+
+    elif intent == "recommendation_cate":
+        user_filters = {}
+        set_user_state(message.chat.id, "user_filters", pickle.dumps(user_filters))
+
+        logging.info(f"Chat ID: {message.chat.id} | Filtering | User filters: {user_filters}")
+
+        await message.reply(text=msg.display_filter_msg.format(format_user_filters(user_filters)),
+                            reply_markup=markup.filters_markup,
+                            parse_mode="Markdown")
 
 
 def del_all_user_states(chat_id):

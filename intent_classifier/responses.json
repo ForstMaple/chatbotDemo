@@ -1,0 +1,33 @@
+{
+   "greeting":[
+      "Hey :-)",
+      "Hello, how can I help you?",
+      "Hi there, it's gaming time! What are you looking for today?"
+   ],
+   "goodbay":[
+      "Bye",
+      "Thanks for help!",
+      "Goodbye",
+      "See you",
+      "See you around!",
+      "I will come by next time",
+      "ByeBye"
+   ],
+   "thanks":[
+      "Glad to help, is there anything else?",
+      "My pleasure, anything else?"
+   ],
+   "apology":[
+      "Sorry I can't help you, I'm still learning...You can try to be specific",
+      "This task may out of my ability, my apology!",
+      "Sorry, can you be more specific?"
+   ],
+   "recommendation_query":[
+      "Glad you ask! I would like to help! I will show the game based on your preference!",
+      "Here you go! These games are recommended based on your game library!"
+   ],
+   "recommendation_cate":[
+      "Yes of course! Any preferred category?",
+      "Here are the filters!"
+   ]
+}

@@ -1,0 +1,73 @@
+{
+ "intents": [
+  {
+   "tag": "greeting",
+   "pattern": [
+    "Hi", 
+    "Hey", 
+    "Hello",
+    "Any one there?",
+    "Hi, how are you?",
+    "Good day!",
+    "hello, chatbot!",
+     "how's going?"],
+    
+   "responses": [
+    "Hey :-)", 
+    "Hello, how can I help you?",
+    "Hi there, it's gaming time! What are you looking for today?"
+   ]
+  }, 
+
+  {
+   "tag": "goodbay",
+    "pattern": ["Bye", "Thanks for help!", "Goodbye", "See you", "see you around!", "i will come by next time", "ByeBye"],
+    "responses": ["Good luck, have fun!", "Have a nice game!", "See you, I will always be here for you!"]
+   },
+
+   {
+    "tag": "thanks",
+    "pattern": ["Thanks", "Thank you", "That's what I want!", "That's what I am looking for!", "Thanks for help!", "That's help, thanks a lot", "apprepriate!",
+                "good job!", "nice done!", "yeah, thanks!"],
+    "responses": ["Glad to help, is there anything else?", "My pleasure, anything else?"] 
+   },
+
+   { 
+    "tag": "apology", 
+    "pattern": ["Can you do this or not?", "No, this is not I am looking for.", "You are a terrible chatbot!", "I will do this by myself.", "How can you not understand?",
+                "I don't like it.", "Not what I expected."],
+    "responses": ["Sorry I can't help you, I'm still learning...You can try to be specific", "This task may out of my ability, my apology!", "Sorry, can you be more specific?"]
+   },
+
+   {
+    "tag": "recommendation_query",
+    "pattern": [
+     "Show me the game information", 
+     "I want to know the game details", 
+     "I'm looking for the new games to play, help me to search.",
+     "I'm bored, I want to query a game",
+     "Show me the game searching",
+     "Game query"],
+
+    "responses": [
+     "Glad you ask! I would like to help! I will show the game based on your preference!",
+     "Here you go! These games are recommended based on your game library!"  ]
+   },
+
+   {
+    "tag": "recommendation_cate",
+    "pattern": [
+     "Can you recommend me some games?",
+     "I'm looking for some games, can you help?",
+     "Browse game by category",
+     "Search game by cateogry",
+     "filter game by category"
+     ],
+   
+    "responses": [
+     "Yes of course! Any prefered category?",
+     "Here are the filters!"]
+    }
+  ]
+}
+	
