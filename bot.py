@@ -47,7 +47,7 @@ async def main_menu(query: types.CallbackQuery, state: FSMContext):
 
 @dp.message_handler(commands=['help'], state='*')
 async def help_command(message: types.Message, state: FSMContext):
-    await message.reply(msg.help_msg, reply_markup=markup.start_markup)
+    await message.reply(msg.help_msg, reply_markup=markup.start_markup, parse_mode="Markdown")
     await state.finish()
     logging.info(f"Chat ID: {message.chat.id} | /help Command")
 
@@ -55,7 +55,7 @@ async def help_command(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(lambda cb: cb.data == "help", state='*')
 async def start_callback(query: types.CallbackQuery, state: FSMContext):
     await query.message.edit_reply_markup(reply_markup=None)
-    await bot.send_message(query.message.chat.id, msg.help_msg, reply_markup=markup.start_markup)
+    await bot.send_message(query.message.chat.id, msg.help_msg, reply_markup=markup.start_markup, parse_mode="Markdown")
     await state.finish()
     logging.info(f"Chat ID: {query.message.chat.id} | Help Callback")
 
