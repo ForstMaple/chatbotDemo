@@ -120,7 +120,7 @@ async def display_game(query: types.CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(lambda cb: cb.data.startswith("get_recommendation_"), state='*')
 @dp.callback_query_handler(lambda cb: cb.data.startswith("recommendation_"), state='*')
 async def display_recommendations(query: types.CallbackQuery, state: FSMContext):
-    if query.data.startswith("Get_Recommendation_"):
+    if query.data.startswith("get_recommendation_"):
         appid = query.data.split('_')[2]
         logging.info(f"Chat ID: {query.message.chat.id} | Getting recommendations for appid {appid}")
 
