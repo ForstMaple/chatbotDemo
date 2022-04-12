@@ -8,7 +8,7 @@ help_msg = "You can click the buttons below to get started. " \
            "*Available Commands:*\n" \
            "/start - Start the bot; Back to Main Menu\n" \
            "/help - Display this help message\n" \
-           "/teach <text> -t <intent> - Teach the bot to understand a new intent\n\n" \
+           "/teach <intent> -t <text> - Teach the bot to understand a new intent\n\n" \
            "*Game Query:*\n" \
            "1. Follow the prompt to type the game game\n" \
            "2. Click on the game you want to query. If it doesn't appear, please try to type in the full game\n" \

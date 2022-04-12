@@ -295,7 +295,10 @@ async def intent_match(message: types.Message):
 
     logging.info(f"Chat ID: {message.chat.id} | Matched Intent: {intent}")
 
-    if intent in ["greeting", "goodbay", "thanks", "apology"]:
+    if intent == "greeting":
+        await message.reply(response, reply_markup=markup.start_markup)
+
+    elif intent in ["goodbay", "thanks", "apology"]:
         await message.reply(response)
 
     elif intent == "recommendation_query":
