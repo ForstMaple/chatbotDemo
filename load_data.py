@@ -59,3 +59,16 @@ def load_recommendation_data():
 
     except Exception as e:
         logging.error(f"Error when loading recommendations data: {e}")
+
+
+def load_summary_vectors():
+    """
+    Loads the game description summaries from the csv file
+    """
+    try:
+        summary_vectors = np.load("data/summary_vectors.npy", allow_pickle=True)
+        logging.info("Summary vectors loaded successfully!")
+        return summary_vectors
+
+    except Exception as e:
+        logging.error(f"Error when loading summary vectors data: {e}")

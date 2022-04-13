@@ -4,7 +4,8 @@ import faiss
 import numpy as np
 import requests
 import spacy_sentence_bert
-from load_data import load_game_data, load_embedding_data, load_summary_data, load_recommendation_data
+from load_data import load_game_data, load_embedding_data, load_summary_data, load_recommendation_data, \
+    load_summary_vectors
 
 logging.basicConfig(format='%(asctime)s | %(name)s | %(levelname)s | %(message)s', level=logging.INFO)
 
@@ -12,9 +13,13 @@ games = load_game_data()
 embeddings = load_embedding_data()
 summaries = load_summary_data()
 recommendations = load_recommendation_data()
+summary_vectors = load_summary_vectors()
 
 index = faiss.IndexFlatL2(embeddings.shape[1])
 index.add(embeddings)
+
+summary_index = faiss.IndexFlatL2(summary_vectors.shape[1])
+summary_index.add(summary_vectors)
 
 nlp = spacy_sentence_bert.load_model('en_stsb_roberta_base')
 
@@ -97,7 +102,7 @@ def game_choice_creator():
     def create_game_choices(user_input, k=5):
         global embeddings, index, nlp, create_game
         input_vec = nlp(str(user_input).lower()).vector
-        _, I = index.search(np.array([input_vec]), k)
+        _, I = summary_index.search(np.array([input_vec]), k)
         candidates = I.tolist()[0]
         logging.info(f"Candidates: {candidates}")
         game_choices = [create_game(row=candidate) for candidate in candidates]
@@ -137,6 +142,17 @@ def create_recommendation_markup(game_recommendations):
     markup.row(InlineKeyboardButton(text="🔙 Back", callback_data="back_to_game_details"))
     markup.insert(InlineKeyboardButton(text="🏠️ Main Menu", callback_data="main_menu"))
     return markup
+
+
+def get_desc_recommendations(desc):
+    global summary_index, create_game
+    input_vec = nlp(str(desc).lower()).vector
+    _, I = index.search(np.array([input_vec]), 5)
+    candidates = I.tolist()[0]
+    logging.info(f"Candidates: {candidates}")
+    game_choices = [create_game(row=candidate) for candidate in candidates]
+
+    return game_choices
 
 
 genre_tags = ['action', 'strategy', 'adventure', 'indie', 'rpg', 'animation & modeling', 'video production', 'casual',

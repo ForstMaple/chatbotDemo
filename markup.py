@@ -3,9 +3,14 @@ from game import genre_tags, theme_tags, special_tags
 
 # Markup for "/start" command
 start_markup = InlineKeyboardMarkup()
-start_markup.row(InlineKeyboardButton(text="🎮️ Game Query & Recommendation", callback_data="game_query_0"))
-start_markup.row(InlineKeyboardButton(text="🗄 Game Recommendation by Filtering", callback_data="game_filtering_0"))
-start_markup.row(InlineKeyboardButton(text="❓️ Help", callback_data="help"))
+start_markup.row(InlineKeyboardButton(text="🎮️ Game Query & Similarity-Based Recommendation",
+                                      callback_data="game_query_0"))
+start_markup.row(InlineKeyboardButton(text="📝 Game Recommendation by Description",
+                                      callback_data="game_desc_0"))
+start_markup.row(InlineKeyboardButton(text="🗄 Game Recommendation by Filtering",
+                                      callback_data="game_filtering_0"))
+start_markup.row(InlineKeyboardButton(text="❓️ Help",
+                                      callback_data="help"))
 
 # Markup for cancel button
 cancel_markup = InlineKeyboardMarkup()

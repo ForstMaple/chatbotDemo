@@ -8,7 +8,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types.inline_keyboard import InlineKeyboardButton
 from cache_manager import set_user_state, get_user_state, del_user_state
 from game import create_game_choices, create_game_markup, create_recommendations, create_recommendation_markup, \
-    format_user_filters, parse_filter
+    format_user_filters, parse_filter, get_desc_recommendations
 from match_intent import match_intent
 import markup
 import msg
@@ -28,6 +28,12 @@ class QueryFlow(StatesGroup):
     game_details = State()
 
 
+class DescRecommendationFlow(StatesGroup):
+    pending_desc_input = State()
+    game_details = State()
+
+
+# General - Start/Back to Main Menu - By command
 @dp.message_handler(commands=['start'], state='*')
 async def start_command(message: types.Message, state: FSMContext):
     await message.reply(msg.start_msg, reply_markup=markup.start_markup)
@@ -36,6 +42,7 @@ async def start_command(message: types.Message, state: FSMContext):
     del_all_user_states(message.chat.id)
 
 
+# General - Start/Back to Main Menu - By callback
 @dp.callback_query_handler(lambda cb: cb.data == "main_menu", state='*')
 async def main_menu(query: types.CallbackQuery, state: FSMContext):
     await query.message.edit_reply_markup(reply_markup=None)
@@ -45,6 +52,7 @@ async def main_menu(query: types.CallbackQuery, state: FSMContext):
     del_all_user_states(query.message.chat.id)
 
 
+# General - Display Help Message - By command
 @dp.message_handler(commands=['help'], state='*')
 async def help_command(message: types.Message, state: FSMContext):
     await message.reply(msg.help_msg, reply_markup=markup.start_markup, parse_mode="Markdown")
@@ -52,6 +60,7 @@ async def help_command(message: types.Message, state: FSMContext):
     logging.info(f"Chat ID: {message.chat.id} | /help Command")
 
 
+# General - Display Help Message - By callback
 @dp.callback_query_handler(lambda cb: cb.data == "help", state='*')
 async def start_callback(query: types.CallbackQuery, state: FSMContext):
     await query.message.edit_reply_markup(reply_markup=None)
@@ -61,40 +70,55 @@ async def start_callback(query: types.CallbackQuery, state: FSMContext):
 
 
 # Game Query - Step 1 - Ask for Input
-@dp.callback_query_handler(lambda cb: cb.data == "game_query_0", state='*')
-async def ask_game_input(query: types.CallbackQuery):
-    logging.info(f"Chat ID: {query.message.chat.id} | Game query - Started")
+# Recommendation by Desc - Step 1 - Ask for Input
+@dp.callback_query_handler(lambda cb: cb.data in ["game_query_0", "game_desc_0"], state='*')
+async def ask_game_input(query: types.CallbackQuery, state: FSMContext):
+    logging.info(f"Chat ID: {query.message.chat.id} | State: {state} - Started")
+
     await query.message.edit_reply_markup(reply_markup=None)
+
+    if query.data == "game_query_0":
+        message = msg.ask_game_input_msg
+        await QueryFlow.pending_game_input.set()
+    else:
+        message = msg.ask_desc_input_msg
+        await DescRecommendationFlow.pending_desc_input.set()
+
     await bot.send_message(query.message.chat.id,
-                           msg.ask_game_input_msg,
+                           message,
                            reply_markup=markup.cancel_markup,
                            parse_mode="Markdown")
     
-    await QueryFlow.pending_game_input.set()
-    
-    logging.info(f"Chat ID: {query.message.chat.id} | Game query - Pending game input")
+    logging.info(f"Chat ID: {query.message.chat.id} | State: {state} - Pending user input")
 
 
 # Game Query - Step 2 - Give & Confirm Options
+# Recommendation by Desc - Step 2 - Display & Update Recommendations
 @dp.message_handler(state=QueryFlow.pending_game_input)
+@dp.message_handler(state=DescRecommendationFlow.pending_desc_input)
 async def process_game_input(message: types.Message, state: FSMContext):
-    logging.info(f"Chat ID: {message.chat.id} | Game query - Processing user input")
     logging.info(f"Chat ID: {message.chat.id} | User input: {message.text}")
 
-    game_choices = create_game_choices(message.text)
-    game_markup = create_game_markup(game_choices)
-    game_markup.row(InlineKeyboardButton(text="🔙 Back", callback_data="game_query_0"))
+    if state is QueryFlow.pending_game_input:
+        game_choices = create_game_choices(message.text)
+        game_markup = create_game_markup(game_choices)
+        game_markup.row(InlineKeyboardButton(text="🔙 Back", callback_data="game_query_0"))
+
+    else:
+        game_choices = get_desc_recommendations(message.text)
+        game_markup = create_game_markup(game_choices)
+        game_markup.row(InlineKeyboardButton(text="🔙 Back", callback_data="game_desc_0"))
+
     game_markup.insert(InlineKeyboardButton(text="🏠️ Main Menu", callback_data="main_menu"))
 
     await message.reply(msg.confirm_game_input_msg, reply_markup=game_markup)
-    await QueryFlow.next()
+    await state.finish()
     set_user_state(message.chat.id, "game_choices", pickle.dumps(game_choices))
     set_user_state(message.chat.id, "game_markup", pickle.dumps(game_markup))
-    
-    logging.info(f"Chat ID: {message.chat.id} | Game query - Pending confirmation")
 
 
 # Game Query - Step 3 - Display Game Details
+# Recommendation by Desc - Step 3 - Display Game Details
 @dp.callback_query_handler(lambda cb: cb.data.startswith("option_"), state='*')
 @dp.callback_query_handler(lambda cb: cb.data == "back_to_game_details", state='*')
 async def display_game(query: types.CallbackQuery, state: FSMContext):
@@ -105,7 +129,7 @@ async def display_game(query: types.CallbackQuery, state: FSMContext):
         game_choices = pickle.loads(get_user_state(query.message.chat.id, "game_choices"))
         game_markup = pickle.loads(get_user_state(query.message.chat.id, "game_markup"))
         game = game_choices[int(query.data.split("_")[1])]
-        game_markup.row(InlineKeyboardButton(text="🤩 Get Recommendations",
+        game_markup.row(InlineKeyboardButton(text="🤩 Find Similar Games",
                                              callback_data=f"get_recommendation_{game._appid}"))
         game.get_price()
 
