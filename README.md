@@ -6,4 +6,4 @@ To run the chatbot locally:
 4. Install all required libraries in `requirements.txt`
 5. Run the chatbot using `python bot.py` in the command line
 
-If you want to try out the deployed chatbot on AWS, please contact [Yufeng Feng](mailto:yufengf@u.nus.edu) . The chatbot is off by defaut.
+If you want to try out the deployed chatbot on AWS, please contact [Yufeng Feng](mailto:yufengf@u.nus.edu) . The chatbot is off by default.
